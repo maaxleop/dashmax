@@ -1136,12 +1136,15 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
+    const numCategories = (state.config?.categories || []).length;
+    const numQuickLinks = (state.config?.quickLinks || []).length;
+
     const html = `
       <div class="settings-nav-tabs">
         <button type="button" class="tab-btn ${activeTabId === 'tab-general' ? 'active' : ''}" data-tab="tab-general"><i class="fa-solid fa-sliders"></i> Général</button>
-        <button type="button" class="tab-btn ${activeTabId === 'tab-categories' ? 'active' : ''}" data-tab="tab-categories"><i class="fa-solid fa-folder-tree"></i> Catégories (${(state.config.categories || []).length})</button>
+        <button type="button" class="tab-btn ${activeTabId === 'tab-categories' ? 'active' : ''}" data-tab="tab-categories"><i class="fa-solid fa-folder-tree"></i> Catégories (${numCategories})</button>
         <button type="button" class="tab-btn ${activeTabId === 'tab-services' ? 'active' : ''}" data-tab="tab-services"><i class="fa-solid fa-list-check"></i> Services (${totalServices})</button>
-        <button type="button" class="tab-btn ${activeTabId === 'tab-quicklinks' ? 'active' : ''}" data-tab="tab-quicklinks"><i class="fa-solid fa-bookmark"></i> Raccourcis (${(state.config.quickLinks || []).length})</button>
+        <button type="button" class="tab-btn ${activeTabId === 'tab-quicklinks' ? 'active' : ''}" data-tab="tab-quicklinks"><i class="fa-solid fa-bookmark"></i> Raccourcis (${numQuickLinks})</button>
         <button type="button" class="tab-btn ${activeTabId === 'tab-weather' ? 'active' : ''}" data-tab="tab-weather"><i class="fa-solid fa-cloud-sun"></i> Météo</button>
         <button type="button" class="tab-btn ${activeTabId === 'tab-security' ? 'active' : ''}" data-tab="tab-security"><i class="fa-solid fa-user-shield"></i> Sécurité</button>
         <button type="button" class="tab-btn ${activeTabId === 'tab-theme' ? 'active' : ''}" data-tab="tab-theme"><i class="fa-solid fa-palette"></i> Thème</button>
