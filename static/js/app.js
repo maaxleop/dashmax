@@ -999,12 +999,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Multi-Tab Settings Center Modal
-  document.getElementById('btn-config-json').addEventListener('click', () => {
-    renderSettingsCenterModal();
-  });
+  const btnConfigJson = document.getElementById('btn-config-json');
+  if (btnConfigJson) {
+    btnConfigJson.addEventListener('click', () => {
+      renderSettingsCenterModal();
+    });
+  }
 
   function renderSettingsCenterModal(activeTabId = 'tab-general') {
-    const currentTheme = state.config?.settings?.theme || 'dark-neon';
+    if (!state.config) {
+      state.config = { auth: { enabled: true, user: 'admin' }, categories: [], settings: {}, quickLinks: [] };
+    }
+    const currentTheme = state.config.settings?.theme || 'dark-neon';
     const jsonStr = JSON.stringify(state.config, null, 2);
 
     // Build Quick Links List HTML
