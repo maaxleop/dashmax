@@ -998,20 +998,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Multi-Tab Settings Center Modal
-  const btnConfigJson = document.getElementById('btn-config-json');
-  if (btnConfigJson) {
-    btnConfigJson.addEventListener('click', () => {
+  // Universal Delegated Click Listener for Settings Center Buttons
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#btn-config-json, #btn-config-welcome, #btn-config, .btn-open-settings');
+    if (btn) {
+      e.preventDefault();
       renderSettingsCenterModal();
-    });
-  }
+    }
+  });
 
   function renderSettingsCenterModal(activeTabId = 'tab-general') {
-    if (!state.config) {
-      state.config = { auth: { enabled: true, user: 'admin' }, categories: [], settings: {}, quickLinks: [] };
-    }
-    const currentTheme = state.config.settings?.theme || 'dark-neon';
-    const jsonStr = JSON.stringify(state.config, null, 2);
+    try {
+      if (!state.config) {
+        state.config = { auth: { enabled: false, user: 'admin' }, categories: [], settings: {}, quickLinks: [] };
+      }
+      const currentTheme = state.config.settings?.theme || 'dark-neon';
+      const jsonStr = JSON.stringify(state.config, null, 2);
 
     // Build Quick Links List HTML
     let quickLinksHtml = '<div class="settings-item-list">';
@@ -1587,6 +1589,10 @@ document.addEventListener('DOMContentLoaded', () => {
           renderSettingsCenterModal('tab-services');
         }
       });
+    }
+    } catch (err) {
+      console.error("Error opening settings modal:", err);
+      alert("Erreur lors de l'ouverture des paramètres: " + err.message);
     }
   }
 
