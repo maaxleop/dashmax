@@ -1267,7 +1267,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
               <div>
                 <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-primary);">Importer une Sauvegarde (JSON)</h4>
-                <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">Restaurez votre tableau de bord à partir d'un fichier `.json` précédemment exporté.</p>
+                <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">Restaurez votre tableau de bord à partir d'un fichier <code>.json</code> précédemment exporté.</p>
               </div>
             </div>
             <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
