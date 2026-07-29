@@ -26,6 +26,10 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dashmax-secret-key-change-me')
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
 
+# Network IO trackers
+last_net_io = None
+last_net_time = None
+
 DEFAULT_CONFIG = {
     "auth": {
         "enabled": True,
@@ -130,7 +134,7 @@ def auth_logout():
 def handle_config():
     config = load_config()
     auth_cfg = config.get('auth', {})
-    if auth_cfg.get('enabled', True) and request.method == 'POST':
+    if auth_cfg.get('enabled', False) and auth_cfg.get('password') and request.method == 'POST':
         if not session.get('authenticated'):
             return jsonify({'error': 'Unauthorized'}), 401
             
@@ -154,70 +158,88 @@ def get_system_metrics():
     global last_net_io, last_net_time
     
     current_time = time.time()
-    elapsed = max(current_time - last_net_time, 0.1)
-    
-    # CPU
-    cpu_percent = psutil.cpu_percent(interval=None)
-    cpu_cores = psutil.cpu_percent(interval=None, percpu=True)
-    
-    # RAM
-    memory = psutil.virtual_memory()
-    
-    # Disk (Target RAID / Volume)
-    target_storage = os.environ.get('STORAGE_PATH', '/volume3')
-    disk_path = '/'
-    for candidate in [target_storage, '/volume3', '/volume1', os.getcwd(), '/']:
-        if os.path.exists(candidate):
-            disk_path = candidate
-            break
-            
     try:
-        disk = psutil.disk_usage(disk_path)
-    except Exception:
-        disk = psutil.disk_usage('/')
-    
-    # Network IO Speed
-    current_net_io = psutil.net_io_counters()
-    bytes_sent_per_sec = (current_net_io.bytes_sent - last_net_io.bytes_sent) / elapsed
-    bytes_recv_per_sec = (current_net_io.bytes_recv - last_net_io.bytes_recv) / elapsed
-    
-    last_net_io = current_net_io
-    last_net_time = current_time
-    
-    # Uptime
-    boot_time = psutil.boot_time()
-    uptime_seconds = int(current_time - boot_time)
-    
-    return jsonify({
-        'timestamp': current_time,
-        'cpu': {
-            'usage_percent': cpu_percent,
-            'cores': cpu_cores,
-            'count': psutil.cpu_count(logical=True)
-        },
-        'memory': {
-            'total_gb': round(memory.total / (1024 ** 3), 2),
-            'used_gb': round(memory.used / (1024 ** 3), 2),
-            'free_gb': round(memory.available / (1024 ** 3), 2),
-            'usage_percent': memory.percent
-        },
-        'disk': {
-            'total_gb': round(disk.total / (1024 ** 3), 2),
-            'used_gb': round(disk.used / (1024 ** 3), 2),
-            'free_gb': round(disk.free / (1024 ** 3), 2),
-            'usage_percent': disk.percent
-        },
-        'network': {
-            'upload_speed_mbps': round((bytes_sent_per_sec * 8) / 1_000_000, 2),
-            'download_speed_mbps': round((bytes_recv_per_sec * 8) / 1_000_000, 2),
-            'sent_mbytes': round(current_net_io.bytes_sent / (1024 * 1024), 1),
-            'recv_mbytes': round(current_net_io.bytes_recv / (1024 * 1024), 1)
-        },
-        'uptime': {
-            'seconds': uptime_seconds,
-            'formatted': f"{uptime_seconds // 86400}d {(uptime_seconds % 86400) // 3600}h {(uptime_seconds % 3600) // 60}m"
-        }
-    })
+        # CPU
+        cpu_percent = psutil.cpu_percent(interval=None)
+        cpu_cores = psutil.cpu_percent(interval=None, percpu=True)
+        
+        # RAM
+        memory = psutil.virtual_memory()
+        
+        # Disk (Target RAID / Volume)
+        target_storage = os.environ.get('STORAGE_PATH', '/volume3')
+        disk_path = '/'
+        for candidate in [target_storage, '/volume3', '/volume1', os.getcwd(), '/']:
+            if os.path.exists(candidate):
+                disk_path = candidate
+                break
+                
+        try:
+            disk = psutil.disk_usage(disk_path)
+        except Exception:
+            disk = psutil.disk_usage('/')
+        
+        # Network IO Speed
+        try:
+            current_net_io = psutil.net_io_counters()
+        except Exception:
+            current_net_io = None
+
+        if last_net_io is None or last_net_time is None or current_net_io is None:
+            last_net_io = current_net_io
+            last_net_time = current_time
+            bytes_sent_per_sec = 0.0
+            bytes_recv_per_sec = 0.0
+        else:
+            elapsed = max(current_time - last_net_time, 0.1)
+            bytes_sent_per_sec = max(0, current_net_io.bytes_sent - last_net_io.bytes_sent) / elapsed
+            bytes_recv_per_sec = max(0, current_net_io.bytes_recv - last_net_io.bytes_recv) / elapsed
+            last_net_io = current_net_io
+            last_net_time = current_time
+
+        boot_time = psutil.boot_time()
+        uptime_seconds = int(current_time - boot_time)
+
+        return jsonify({
+            'timestamp': current_time,
+            'cpu': {
+                'usage_percent': cpu_percent,
+                'cores': cpu_cores,
+                'count': psutil.cpu_count(logical=True) or 1
+            },
+            'memory': {
+                'total_gb': round(memory.total / (1024 ** 3), 2),
+                'used_gb': round(memory.used / (1024 ** 3), 2),
+                'free_gb': round(memory.available / (1024 ** 3), 2),
+                'usage_percent': memory.percent
+            },
+            'disk': {
+                'total_gb': round(disk.total / (1024 ** 3), 2),
+                'used_gb': round(disk.used / (1024 ** 3), 2),
+                'free_gb': round(disk.free / (1024 ** 3), 2),
+                'usage_percent': disk.percent
+            },
+            'network': {
+                'upload_speed_mbps': round((bytes_sent_per_sec * 8) / 1_000_000, 2),
+                'download_speed_mbps': round((bytes_recv_per_sec * 8) / 1_000_000, 2),
+                'sent_mbytes': round((current_net_io.bytes_sent if current_net_io else 0) / (1024 * 1024), 1),
+                'recv_mbytes': round((current_net_io.bytes_recv if current_net_io else 0) / (1024 * 1024), 1)
+            },
+            'uptime': {
+                'seconds': uptime_seconds,
+                'formatted': f"{uptime_seconds // 86400}d {(uptime_seconds % 86400) // 3600}h {(uptime_seconds % 3600) // 60}m"
+            }
+        })
+    except Exception as e:
+        print(f"Error in /api/system: {e}")
+        return jsonify({
+            'timestamp': current_time,
+            'cpu': {'usage_percent': 0, 'cores': [], 'count': 1},
+            'memory': {'total_gb': 0, 'used_gb': 0, 'free_gb': 0, 'usage_percent': 0},
+            'disk': {'total_gb': 0, 'used_gb': 0, 'free_gb': 0, 'usage_percent': 0},
+            'network': {'upload_speed_mbps': 0, 'download_speed_mbps': 0, 'sent_mbytes': 0, 'recv_mbytes': 0},
+            'uptime': {'seconds': 0, 'formatted': '0d 0h 0m'}
+        })
 
 @app.route('/api/ping', methods=['POST'])
 @check_auth
