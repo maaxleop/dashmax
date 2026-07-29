@@ -1137,6 +1137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button type="button" class="tab-btn ${activeTabId === 'tab-weather' ? 'active' : ''}" data-tab="tab-weather"><i class="fa-solid fa-cloud-sun"></i> Météo</button>
         <button type="button" class="tab-btn ${activeTabId === 'tab-security' ? 'active' : ''}" data-tab="tab-security"><i class="fa-solid fa-user-shield"></i> Sécurité</button>
         <button type="button" class="tab-btn ${activeTabId === 'tab-theme' ? 'active' : ''}" data-tab="tab-theme"><i class="fa-solid fa-palette"></i> Thème</button>
+        <button type="button" class="tab-btn ${activeTabId === 'tab-exportimport' ? 'active' : ''}" data-tab="tab-exportimport"><i class="fa-solid fa-file-export"></i> Import / Export</button>
         <button type="button" class="tab-btn ${activeTabId === 'tab-json' ? 'active' : ''}" data-tab="tab-json"><i class="fa-solid fa-code"></i> Code JSON</button>
       </div>
 
@@ -1229,6 +1230,49 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
+      <div class="settings-tab-panel ${activeTabId === 'tab-exportimport' ? 'active' : ''}" id="tab-exportimport">
+        <div style="display: flex; flex-direction: column; gap: 16px; padding: 6px 0;">
+          <div style="padding: 16px; background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(0, 242, 254, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-cyan); flex-shrink: 0;">
+                <i class="fa-solid fa-file-arrow-down" style="font-size: 18px;"></i>
+              </div>
+              <div>
+                <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-primary);">Exporter la Sauvegarde (JSON)</h4>
+                <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">Téléchargez un fichier de sauvegarde contenant vos catégories, cartes de services, icônes et préférences.</p>
+              </div>
+            </div>
+            <div style="margin-top: 14px; text-align: right;">
+              <button type="button" class="btn-primary" id="btn-export-json-file" style="padding: 8px 18px; font-size: 13px;">
+                <i class="fa-solid fa-file-download"></i> Exporter la configuration (.json)
+              </button>
+            </div>
+          </div>
+
+          <div style="padding: 16px; background: rgba(127, 0, 255, 0.05); border: 1px solid rgba(127, 0, 255, 0.2); border-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(127, 0, 255, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-violet); flex-shrink: 0;">
+                <i class="fa-solid fa-file-arrow-up" style="font-size: 18px;"></i>
+              </div>
+              <div>
+                <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-primary);">Importer une Sauvegarde (JSON)</h4>
+                <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">Restaurez votre tableau de bord à partir d'un fichier `.json` précédemment exporté.</p>
+              </div>
+            </div>
+            <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+              <input type="file" id="inp-import-file" accept=".json" style="display: none;">
+              <button type="button" class="btn-secondary" id="btn-trigger-import-file" style="padding: 8px 16px; font-size: 13px;">
+                <i class="fa-solid fa-folder-open"></i> Choisir un fichier JSON...
+              </button>
+              <span id="import-file-name" style="font-size: 12px; color: var(--text-muted); font-style: italic;">Aucun fichier sélectionné</span>
+              <button type="button" class="btn-success" id="btn-apply-import-file" style="padding: 8px 16px; font-size: 13px;" disabled>
+                <i class="fa-solid fa-check"></i> Importer & Appliquer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="settings-tab-panel ${activeTabId === 'tab-json' ? 'active' : ''}" id="tab-json">
         <div class="form-group">
           <label>Code JSON Brut</label>
@@ -1269,6 +1313,93 @@ document.addEventListener('DOMContentLoaded', () => {
         renderDashboard();
       });
     });
+
+    // Export JSON File Event
+    const btnExport = document.getElementById('btn-export-json-file');
+    if (btnExport) {
+      btnExport.addEventListener('click', () => {
+        try {
+          const configCopy = JSON.parse(JSON.stringify(state.config));
+          const jsonStr = JSON.stringify(configCopy, null, 2);
+          const blob = new Blob([jsonStr], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const dateStr = new Date().toISOString().slice(0, 10);
+          a.href = url;
+          a.download = `dashmax-config-${dateStr}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          alert("Erreur d'exportation: " + err.message);
+        }
+      });
+    }
+
+    // Import JSON File Events
+    const inpImportFile = document.getElementById('inp-import-file');
+    const btnTriggerImport = document.getElementById('btn-trigger-import-file');
+    const btnApplyImport = document.getElementById('btn-apply-import-file');
+    const lblFileName = document.getElementById('import-file-name');
+
+    if (btnTriggerImport && inpImportFile) {
+      btnTriggerImport.addEventListener('click', () => {
+        inpImportFile.click();
+      });
+
+      inpImportFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          if (lblFileName) lblFileName.textContent = file.name;
+          if (btnApplyImport) btnApplyImport.disabled = false;
+        } else {
+          if (lblFileName) lblFileName.textContent = 'Aucun fichier sélectionné';
+          if (btnApplyImport) btnApplyImport.disabled = true;
+        }
+      });
+    }
+
+    if (btnApplyImport && inpImportFile) {
+      btnApplyImport.addEventListener('click', async () => {
+        const file = inpImportFile.files[0];
+        if (!file) return;
+
+        btnApplyImport.disabled = true;
+        btnApplyImport.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Importation...';
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const importedConfig = JSON.parse(e.target.result);
+            if (typeof importedConfig !== 'object' || importedConfig === null) {
+              throw new Error("Format JSON invalide.");
+            }
+
+            const data = await safeFetchJson('/api/config', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(importedConfig)
+            });
+
+            if (data.status === 'success' || data.config) {
+              state.config = data.config || importedConfig;
+              closeModal();
+              renderDashboard();
+              alert("Configuration DashMax importée et appliquée avec succès !");
+            } else {
+              alert("Échec de l'importation de la configuration.");
+            }
+          } catch (err) {
+            alert("Erreur lors de l'importation: " + err.message);
+          } finally {
+            btnApplyImport.disabled = false;
+            btnApplyImport.innerHTML = '<i class="fa-solid fa-check"></i> Importer & Appliquer';
+          }
+        };
+        reader.readAsText(file, 'UTF-8');
+      });
+    }
 
     // Move Category Up event
     document.querySelectorAll('.btn-move-cat-up').forEach(btn => {
