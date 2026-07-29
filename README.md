@@ -2,6 +2,8 @@
 
 **DashMax** est un tableau de bord Home Lab ultra-moderne, rapide et esthétique conçu spécialement pour les NAS Synology, serveurs Docker et passionnés de Domotique / Self-Hosting.
 
+![DashMax Screenshot](docs/screenshot.png)
+
 ---
 
 ## ✨ Fonctionnalités Clés
@@ -29,7 +31,7 @@
 
 1. **Cloner le dépôt GitHub** :
    ```bash
-   git clone https://github.com/votre-nom/dashmax.git
+   git clone https://github.com/maaxleop/dashmax.git
    cd dashmax
    ```
 
