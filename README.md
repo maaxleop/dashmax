@@ -1,3 +1,6 @@
+
+# Codé avec Antigravity IDE
+
 # 🚀 DashMax - Ultra-Modern Synology Home Lab Dashboard & Container Manager
 
 **DashMax** est un tableau de bord Home Lab ultra-moderne, rapide et esthétique conçu spécialement pour les NAS Synology, serveurs Docker et passionnés de Domotique / Self-Hosting.
