@@ -22,22 +22,30 @@ class UnixHTTPConnection(http.client.HTTPConnection):
         self.sock.connect(self.socket_path)
 
 app = Flask(__name__, static_folder='static', static_url_path='')
-app.secret_key = os.environ.get('SECRET_KEY', 'dashmax-synology-maison-key-2026')
+app.secret_key = os.environ.get('SECRET_KEY', 'dashmax-secret-key-change-me')
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
 
-# Track network IO for speed calculations
-last_net_io = psutil.net_io_counters()
-last_net_time = time.time()
+DEFAULT_CONFIG = {
+    "auth": {
+        "enabled": True,
+        "user": "admin",
+        "password": "admin"
+    },
+    "categories": []
+}
 
 def load_config():
     if os.path.exists(CONFIG_PATH):
         try:
             with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
+                if data:
+                    return data
         except Exception as e:
             print(f"Error reading config.json: {e}")
-    return {}
+    save_config(DEFAULT_CONFIG)
+    return DEFAULT_CONFIG
 
 def save_config(data):
     try:
@@ -100,8 +108,8 @@ def auth_login():
     
     config = load_config()
     auth_cfg = config.get('auth', {})
-    valid_user = auth_cfg.get('user', 'maxleo')
-    valid_pass = auth_cfg.get('password', 'Nicolas2-29200')
+    valid_user = auth_cfg.get('user', 'admin')
+    valid_pass = auth_cfg.get('password', 'admin')
     
     if user_input == valid_user and pass_input == valid_pass:
         session['authenticated'] = True
@@ -152,10 +160,10 @@ def get_system_metrics():
     # RAM
     memory = psutil.virtual_memory()
     
-    # Disk (Target RAID: /volume3/IronWolf)
-    target_storage = os.environ.get('STORAGE_PATH', '/volume3/IronWolf')
+    # Disk (Target RAID / Volume)
+    target_storage = os.environ.get('STORAGE_PATH', '/volume3')
     disk_path = '/'
-    for candidate in [target_storage, '/volume3/IronWolf', '/volume3', os.getcwd(), '/']:
+    for candidate in [target_storage, '/volume3', '/volume1', os.getcwd(), '/']:
         if os.path.exists(candidate):
             disk_path = candidate
             break

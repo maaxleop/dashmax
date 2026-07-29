@@ -274,7 +274,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const catContainer = document.getElementById('categories-container');
     catContainer.innerHTML = '';
 
-    (state.config.categories || []).forEach(cat => {
+    const categories = state.config.categories || [];
+    if (categories.length === 0) {
+      catContainer.innerHTML = `
+        <div style="text-align:center; padding: 60px 20px; color: var(--text-muted); width: 100%;">
+          <i class="fa-solid fa-layer-group" style="font-size: 48px; opacity: 0.3; margin-bottom: 16px; display: inline-block; color: var(--accent-cyan);"></i><br>
+          <span style="font-size: 16px; font-weight: 600; color: var(--text-primary);">Bienvenue sur DashMax !</span><br>
+          <p style="font-size: 13px; margin-top: 8px; max-width: 450px; margin-left: auto; margin-right: auto; line-height: 1.5; color: var(--text-muted);">
+            Votre tableau de bord est prêt. Cliquez sur le bouton <strong style="color: var(--accent-cyan);"><i class="fa-solid fa-sliders"></i> Configuration</strong> en haut à droite pour ajouter vos premières catégories et cartes de services.
+          </p>
+        </div>
+      `;
+    } else {
+      categories.forEach(cat => {
       const groupEl = document.createElement('section');
       groupEl.className = 'category-group';
       groupEl.id = `cat-${cat.id}`;
@@ -320,6 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       catContainer.appendChild(groupEl);
     });
+    }
 
     // Trigger initial service ping check
     pingAllServices();
@@ -1175,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="settings-tab-panel ${activeTabId === 'tab-security' ? 'active' : ''}" id="tab-security">
         <div class="form-group">
           <label>Identifiant de Connexion</label>
-          <input type="text" id="cfg-auth-user" class="form-input" value="${state.config.auth?.user || 'maxleo'}" autocomplete="off">
+          <input type="text" id="cfg-auth-user" class="form-input" value="${state.config.auth?.user || 'admin'}" autocomplete="off">
         </div>
         <div class="form-group" style="margin-top: 12px;">
           <label>Nouveau Mot de Passe (Laissez vide pour conserver l'actuel)</label>
