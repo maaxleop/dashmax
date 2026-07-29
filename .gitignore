@@ -1,0 +1,17 @@
+# Sensitive / User Custom Config
+config.json
+
+# Environment Variables & Secrets
+.env
+*.env
+
+# Python Cache & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# Operating System Files
+.DS_Store
+Thumbs.db

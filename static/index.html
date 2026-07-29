@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark-neon">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>DashMax | Home Lab Center</title>
+  <!-- iOS Apple Touch Icons (Must be first for Safari) -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260729_1220">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=20260729_1220">
+  <link rel="apple-touch-icon-precomposed" href="apple-touch-icon-precomposed.png?v=20260729_1220">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DashMax">
+
+  <!-- Favicon & Manifest -->
+  <link rel="icon" type="image/png" sizes="180x180" href="apple-touch-icon.png?v=20260729_1220">
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css?v=20260729_1227">
+  
+  <!-- FontAwesome & Lucide Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Chart.js for real-time graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Animated Mesh Background Canvas -->
+  <canvas id="bg-canvas"></canvas>
+
+  <div id="app">
+    
+    <!-- Top Navigation Header -->
+    <header class="header">
+      <div class="brand-section">
+        <div class="brand-logo" id="brand-logo-container">
+          <i class="fa-solid fa-layer-group"></i>
+        </div>
+        <div class="brand-title">
+          <h1 id="app-title">Synology Maison</h1>
+          <p id="app-subtitle">Centre d'Opérations & Services NAS</p>
+          <div class="brand-datetime" id="brand-datetime">
+            <span id="brand-clock-date">--</span> &bull; <span id="brand-clock-time">00:00:00</span>
+          </div>
+          <div class="brand-metrics" id="brand-metrics">
+            <span><i class="fa-solid fa-microchip"></i> <span id="mini-val-cpu">0%</span></span>
+            <span><i class="fa-solid fa-memory"></i> <span id="mini-val-ram">0%</span></span>
+            <span><i class="fa-solid fa-hard-drive"></i> <span id="mini-val-disk">0%</span></span>
+            <span><i class="fa-solid fa-network-wired"></i> <span id="mini-val-net">0B/s</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Weather & Clock Group -->
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <!-- Live Weather Pill Badge -->
+        <div class="weather-pill-badge" id="weather-badge">
+          <img id="weather-icon" src="https://openweathermap.org/img/wn/01n.png" alt="weather">
+          <div class="weather-info">
+            <span class="weather-temp" id="weather-temp">--°C</span>
+            <span class="weather-city" id="weather-city">Brest</span>
+          </div>
+        </div>
+
+        <!-- Live Clock & Date Badge -->
+        <div class="datetime-pill-badge" id="datetime-badge">
+          <i class="fa-regular fa-clock" style="color: var(--accent-cyan); font-size: 14px;"></i>
+          <div class="datetime-info">
+            <span class="clock-time" id="clock-time">00:00:00</span>
+            <span class="clock-date" id="clock-date">--</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Segmented Action Buttons Bar -->
+        <div class="action-buttons-group">
+          <button class="btn-icon-sm" id="btn-toggle-metrics" title="Masquer / Afficher les graphiques">
+            <i class="fa-solid fa-chart-line"></i>
+          </button>
+          <button class="btn-icon-sm" id="btn-containers" title="État des Conteneurs Synology">
+            <i class="fa-brands fa-docker"></i>
+          </button>
+          <button class="btn-icon-sm" id="btn-config-json" title="Centre de Paramètres">
+            <i class="fa-solid fa-gear"></i>
+          </button>
+          <button class="btn-icon-sm" id="btn-logout" title="Déconnexion">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+
+    <!-- Real-time Metrics Dashboard -->
+    <section class="metrics-section" id="metrics-section">
+      
+      <!-- CPU Metric Card -->
+      <div class="metric-card" id="metric-cpu-card">
+        <div class="metric-header">
+          <div class="metric-title-group">
+            <div class="metric-icon"><i class="fa-solid fa-microchip"></i></div>
+            <div class="metric-name">Processeur (CPU)</div>
+          </div>
+          <div class="metric-value" id="val-cpu">0%</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-cpu"></canvas>
+        </div>
+      </div>
+
+      <!-- RAM Metric Card -->
+      <div class="metric-card" id="metric-ram-card">
+        <div class="metric-header">
+          <div class="metric-title-group">
+            <div class="metric-icon"><i class="fa-solid fa-memory"></i></div>
+            <div class="metric-name">Mémoire (RAM)</div>
+          </div>
+          <div class="metric-value" id="val-ram">0 / 0 GB</div>
+        </div>
+        <div class="ram-radial-wrapper">
+          <svg class="radial-ring" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="ram-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#7f00ff"/>
+                <stop offset="100%" stop-color="#00f2fe"/>
+              </linearGradient>
+            </defs>
+            <circle class="ring-bg" cx="50" cy="50" r="40" />
+            <circle class="ring-fill" id="ram-ring-fill" cx="50" cy="50" r="40" />
+          </svg>
+          <div class="ring-text" id="ram-ring-text">0%</div>
+        </div>
+      </div>
+
+      <!-- Disk Metric Card -->
+      <div class="metric-card" id="metric-disk-card">
+        <div class="metric-header">
+          <div class="metric-title-group">
+            <div class="metric-icon"><i class="fa-solid fa-hard-drive"></i></div>
+            <div class="metric-name">RAID IronWolf (/volume3)</div>
+          </div>
+          <div class="metric-value" id="val-disk">0%</div>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="fill-disk" style="width: 0%;"></div>
+        </div>
+        <div class="latency-info" style="margin-top: 10px;" id="val-disk-detail">0 GB utilisés / 0 GB libres</div>
+      </div>
+
+      <!-- Network Speed Card -->
+      <div class="metric-card" id="metric-net-card">
+        <div class="metric-header">
+          <div class="metric-title-group">
+            <div class="metric-icon"><i class="fa-solid fa-network-wired"></i></div>
+            <div class="metric-name">Réseau (Bande Passante)</div>
+          </div>
+          <div class="metric-value" id="val-net-speed">0 Mbps</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-net"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Services Grid Categories -->
+    <main class="dashboard-grid" id="categories-container">
+      <!-- Dynamic service groups injected here -->
+    </main>
+
+    <!-- Quick Links Bar (Moved to Bottom) -->
+    <div class="quick-links-bar" id="quick-links-container">
+      <!-- Rendered dynamically -->
+    </div>
+
+    <!-- Footer Copyright -->
+    <footer class="footer-copyright">
+      &copy; <span id="copyright-year">2026</span> DashMax &bull; Conçu par <span>maxleo</span>
+    </footer>
+
+  </div>
+
+  <!-- Customization & Settings Modal -->
+  <div class="modal-overlay" id="custom-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modal-title">Personnaliser DashMax</h2>
+        <button class="btn-icon" id="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <div class="modal-body" id="modal-content">
+        <!-- Dynamic content: Add Service Form / Theme Picker / JSON Editor -->
+      </div>
+      
+      <div class="modal-footer" id="modal-footer">
+        <button class="btn-secondary" id="btn-cancel-modal">Annuler</button>
+        <button class="btn-primary" id="btn-save-modal">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Glassmorphic Login Overlay (Dynamically injected only when unauthenticated) -->
+  <div class="login-overlay" id="login-screen"></div>
+
+  <!-- App Script Logic -->
+  <script src="js/app.js?v=20260729_1227"></script>
+</body>
+</html>

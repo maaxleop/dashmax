@@ -1,0 +1,62 @@
+{
+  "auth": {
+    "enabled": true,
+    "user": "admin"
+  },
+  "categories": [
+    {
+      "id": "synology-nas",
+      "name": "Applications Synology NAS",
+      "icon": "hard-drive",
+      "services": [
+        {
+          "id": "synology-dsm",
+          "name": "Synology DSM",
+          "url": "https://synology.local:5001",
+          "pingUrl": "https://synology.local:5001",
+          "icon": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/synology-dsm.png",
+          "description": "Gestion OS du NAS Synology",
+          "tag": "NAS",
+          "target": "_blank"
+        },
+        {
+          "id": "file-station",
+          "name": "File Station",
+          "url": "https://synology.local:5007",
+          "pingUrl": "https://synology.local:5007",
+          "icon": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/synology-file-station.png",
+          "description": "Gestionnaire de fichiers Synology",
+          "tag": "Fichiers",
+          "target": "_blank"
+        }
+      ]
+    },
+    {
+      "id": "services-docker",
+      "name": "Services Docker & Stacks",
+      "icon": "box",
+      "services": [
+        {
+          "id": "home-assistant",
+          "name": "Home Assistant",
+          "url": "http://192.168.1.50:8123",
+          "pingUrl": "http://192.168.1.50:8123",
+          "icon": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/home-assistant-alt.png",
+          "description": "Plateforme Domotique & Automatisation",
+          "tag": "Maison",
+          "target": "_blank"
+        },
+        {
+          "id": "portainer",
+          "name": "Portainer",
+          "url": "https://192.168.1.50:9443",
+          "pingUrl": "https://192.168.1.50:9443",
+          "icon": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/portainer.png",
+          "description": "Gestionnaire de conteneurs Docker",
+          "tag": "Docker",
+          "target": "_blank"
+        }
+      ]
+    }
+  ]
+}

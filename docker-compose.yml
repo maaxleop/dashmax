@@ -1,0 +1,15 @@
+services:
+  dashmax:
+    build: .
+    container_name: dashmax
+    restart: unless-stopped
+    ports:
+      - "3550:3550"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config.json:/app/config.json
+      - ./static:/app/static
+      - ./app.py:/app/app.py
+    environment:
+      - PORT=3550
+      - FLASK_DEBUG=0
