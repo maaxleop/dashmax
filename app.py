@@ -61,7 +61,9 @@ def check_auth(f):
     def decorated(*args, **kwargs):
         config = load_config()
         auth_cfg = config.get('auth', {})
-        if auth_cfg.get('enabled', True):
+        enabled = auth_cfg.get('enabled', False)
+        password = auth_cfg.get('password', '').strip()
+        if enabled and password:
             if not session.get('authenticated'):
                 return jsonify({'error': 'Unauthorized', 'auth_required': True}), 401
         return f(*args, **kwargs)
@@ -92,12 +94,13 @@ def serve_manifest():
 def auth_status():
     config = load_config()
     auth_cfg = config.get('auth', {})
-    enabled = auth_cfg.get('enabled', True)
+    password = auth_cfg.get('password', '').strip()
+    enabled = auth_cfg.get('enabled', False) and bool(password)
     is_auth = session.get('authenticated', False) if enabled else True
     return jsonify({
         'auth_enabled': enabled,
         'authenticated': is_auth,
-        'username': session.get('username', '')
+        'username': session.get('username', auth_cfg.get('user', 'admin'))
     })
 
 @app.route('/api/auth/login', methods=['POST'])
