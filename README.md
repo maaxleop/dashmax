@@ -29,7 +29,7 @@
 
 ## 🛠️ Déploiement Rapide avec Docker Compose
 
-1. **Cloner le dépôt GitHub** :
+1. **Cloner le dépôt GitHub** (Necéssite Git Server sur DSM):
    ```bash
    git clone https://github.com/maaxleop/dashmax.git
    cd dashmax
