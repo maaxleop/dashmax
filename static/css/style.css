@@ -2,7 +2,7 @@
    DashMax - Ultra Modern Glassmorphic Design System
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
   color-scheme: dark;
@@ -28,7 +28,8 @@
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   
-  --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
@@ -166,9 +167,10 @@ body {
 }
 
 .brand-title h1 {
+  font-family: var(--font-display);
   font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.4px;
   background: linear-gradient(135deg, #ffffff 30%, var(--text-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -445,6 +447,7 @@ body {
 }
 
 .category-title {
+  font-family: var(--font-display);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -655,6 +658,37 @@ body {
 
 .modal-overlay.active .modal-box {
   transform: translateY(0);
+}
+
+/* PC / Desktop Only: Enlarge Docker Management Modal & Containers List */
+@media (min-width: 992px) {
+  .modal-overlay.modal-docker-wide {
+    align-items: center;
+    padding: 10px 0;
+  }
+
+  .modal-overlay.modal-docker-wide .modal-box {
+    width: 96%;
+    max-width: 1550px;
+    height: 96vh;
+    max-height: 96vh;
+  }
+  
+  .modal-overlay.modal-docker-wide .modal-body {
+    padding: 24px 32px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .modal-overlay.modal-docker-wide #containers-list-box {
+    flex: 1 !important;
+    max-height: none !important;
+    height: 100% !important;
+    overflow-y: auto !important;
+  }
 }
 
 .modal-header {
@@ -1186,19 +1220,21 @@ body {
 
   /* Ultra-sleek minimalist mobile header */
   .header {
-    padding: 8px 12px;
+    padding: 6px 10px;
     margin-bottom: 12px;
     border-radius: 14px;
     background: rgba(15, 23, 42, 0.7);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
     max-width: 100%;
     box-sizing: border-box;
+    overflow: hidden;
   }
 
   .brand-section {
@@ -1206,24 +1242,32 @@ body {
     align-items: center;
     min-width: 0;
     flex: 1 1 auto;
+    overflow: hidden;
   }
 
   .brand-logo {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     border-radius: 8px;
     flex-shrink: 0;
   }
 
   .brand-logo i {
-    font-size: 14px;
+    font-size: 13px;
+  }
+
+  .brand-title {
+    min-width: 0;
+    overflow: hidden;
   }
 
   .brand-title h1 {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     line-height: 1.1;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .brand-title p {
@@ -1231,40 +1275,46 @@ body {
   }
 
   .brand-datetime {
-    display: flex;
-    font-size: 10px;
-    margin-top: 0;
-    opacity: 0.85;
+    display: none !important;
   }
 
   .brand-metrics {
     display: flex;
-    font-size: 10px;
-    gap: 6px;
-    margin-top: 0;
+    font-size: 9px;
+    gap: 5px;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .brand-metrics::-webkit-scrollbar {
+    display: none;
   }
 
   .brand-metrics span {
     display: inline-flex;
     align-items: center;
     gap: 2px;
+    flex-shrink: 0;
   }
 
   .weather-pill-badge {
     padding: 2px 6px;
     border-radius: 8px;
-    font-size: 11px;
+    font-size: 10px;
     background: rgba(255, 255, 255, 0.04);
     flex-shrink: 0;
+    margin-left: 2px;
   }
 
   .weather-pill-badge img {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 
   .weather-temp {
-    font-size: 11px;
+    font-size: 10px;
+    font-weight: 600;
   }
 
   .weather-city {
@@ -1281,15 +1331,15 @@ body {
   }
 
   .action-buttons-group {
-    padding: 3px 5px;
-    border-radius: 18px;
-    gap: 4px;
+    padding: 2px 4px;
+    border-radius: 14px;
+    gap: 2px;
   }
 
   .btn-icon-sm {
-    width: 34px;
-    height: 34px;
-    font-size: 13px;
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
   }
 
   /* Hide big metrics section & chart toggle button on mobile */

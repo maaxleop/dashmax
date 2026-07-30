@@ -393,16 +393,62 @@ document.addEventListener('DOMContentLoaded', () => {
         ramRingText.textContent = `${ramVal}%`;
       }
 
-      // Disk
-      const diskVal = Math.round(data.disk.usage_percent);
+      // Disk(s)
+      const disks = (data.disks && data.disks.length > 0) ? data.disks : (data.disk ? [data.disk] : []);
       const valDiskEl = document.getElementById('val-disk');
-      const fillDiskEl = document.getElementById('fill-disk');
-      const valDiskDetailEl = document.getElementById('val-disk-detail');
       const miniDiskEl = document.getElementById('mini-val-disk');
-      if (valDiskEl) valDiskEl.textContent = `${diskVal}%`;
-      if (miniDiskEl) miniDiskEl.textContent = `${diskVal}%`;
-      if (fillDiskEl) fillDiskEl.style.width = `${diskVal}%`;
-      if (valDiskDetailEl) valDiskDetailEl.textContent = `${data.disk.used_gb} GB utilisés / ${data.disk.free_gb} GB libres`;
+      const metricDiskCard = document.getElementById('metric-disk-card');
+      const metricDiskName = metricDiskCard?.querySelector('.metric-name');
+
+      const avgPercent = disks.length > 0 ? Math.round(disks.reduce((acc, d) => acc + (d.usage_percent || 0), 0) / disks.length) : 0;
+      if (valDiskEl) valDiskEl.textContent = `${avgPercent}%`;
+      if (miniDiskEl) miniDiskEl.textContent = `${avgPercent}%`;
+      if (metricDiskName) {
+        metricDiskName.textContent = 'Stockage';
+      }
+
+      if (metricDiskCard) {
+        // Ensure disk-bars-container exists and replaces old static structure
+        let diskBarsContainer = document.getElementById('disk-bars-container');
+        if (!diskBarsContainer) {
+          const oldBar = metricDiskCard.querySelector('.progress-bar-bg');
+          const oldDetail = metricDiskCard.querySelector('.latency-info');
+          if (oldBar) oldBar.remove();
+          if (oldDetail) oldDetail.remove();
+
+          diskBarsContainer = document.createElement('div');
+          diskBarsContainer.id = 'disk-bars-container';
+          metricDiskCard.appendChild(diskBarsContainer);
+        }
+
+        const isMulti = disks.length > 1;
+        diskBarsContainer.style.display = isMulti ? 'grid' : 'flex';
+        diskBarsContainer.style.flexDirection = isMulti ? '' : 'column';
+        diskBarsContainer.style.gridTemplateColumns = isMulti ? 'repeat(auto-fit, minmax(170px, 1fr))' : '';
+        diskBarsContainer.style.gap = isMulti ? '8px 12px' : '10px';
+        diskBarsContainer.style.marginTop = '6px';
+
+        diskBarsContainer.innerHTML = disks.map((d) => {
+          const pct = Math.round(d.usage_percent || 0);
+          const name = d.name || d.path || 'Disque';
+          return `
+            <div class="disk-item-row" style="${isMulti ? 'background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 8px 10px; border-radius: 8px;' : ''}">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 4px;">
+                <span style="font-weight: 600; color: var(--accent-cyan); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75%;" title="${name} (${d.path})">
+                  <i class="fa-solid fa-hard-drive" style="font-size: 10px;"></i> ${name}
+                </span>
+                <span style="font-weight: 700; font-family: var(--font-mono); color: var(--text-primary); font-size: 11px;">${pct}%</span>
+              </div>
+              <div class="progress-bar-bg" style="height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;">
+                <div class="progress-bar-fill" style="width: ${pct}%; height: 100%; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple)); border-radius: 3px; transition: width 0.4s ease;"></div>
+              </div>
+              <div class="latency-info" style="margin-top: 4px; font-size: 10px; color: var(--text-muted); text-align: right;">
+                ${d.used_gb} GB / ${d.free_gb} GB libres
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
 
       // Network
       const dlSpeed = data.network.download_speed_mbps;
@@ -513,13 +559,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (mode === 'docker-containers') {
       btnSaveModal.style.display = 'none';
+      modalOverlay.classList.add('modal-docker-wide');
     } else {
       btnSaveModal.style.display = 'inline-block';
+      modalOverlay.classList.remove('modal-docker-wide');
     }
   }
 
   function closeModal() {
     modalOverlay.classList.remove('active');
+    modalOverlay.classList.remove('modal-docker-wide');
     state.activeModalMode = null;
     btnSaveModal.style.display = 'inline-block';
   }
@@ -632,7 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </span>
           </div>
 
-          <div class="settings-item-list" id="containers-list-box" style="max-height: 380px; overflow-y: auto;">
+          <div class="settings-item-list" id="containers-list-box" style="flex: 1; min-height: 300px; overflow-y: auto;">
         `;
 
         if (containers.length === 0) {
@@ -701,7 +750,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         // Projects View
         html += `
-          <div class="settings-item-list" id="containers-list-box" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
+          <div class="settings-item-list" id="containers-list-box" style="flex: 1; min-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
         `;
 
         if (projectsList.length === 0) {
@@ -1007,6 +1056,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  function renderDiskCheckboxesHtml(config) {
+    const selectedPaths = config?.settings?.storagePaths || (config?.settings?.storagePath ? [config.settings.storagePath] : ['/IronWolf']);
+    const defaultCandidates = [
+      { path: '/IronWolf', label: 'Volume IronWolf monté (/IronWolf)' },
+      { path: '/', label: 'Partition Système Docker (/)' }
+    ];
+
+    const seen = new Set();
+    const uniqueCandidates = [];
+
+    // Add custom selected paths first
+    selectedPaths.forEach(p => {
+      if (p && !defaultCandidates.some(c => c.path === p) && !seen.has(p)) {
+        seen.add(p);
+        uniqueCandidates.push({ path: p, label: `Volume / Dossier (${p})` });
+      }
+    });
+
+    defaultCandidates.forEach(c => {
+      if (!seen.has(c.path)) {
+        seen.add(c.path);
+        uniqueCandidates.push(c);
+      }
+    });
+
+    return uniqueCandidates.map(c => {
+      const isChecked = selectedPaths.includes(c.path);
+      return `
+        <label style="display: flex; align-items: center; gap: 10px; font-size: 13px; cursor: pointer; padding: 4px 6px; border-radius: 6px; transition: background 0.2s;" class="disk-checkbox-label">
+          <input type="checkbox" class="chk-storage-path" value="${c.path}" ${isChecked ? 'checked' : ''} style="accent-color: var(--accent-cyan); width: 16px; height: 16px; cursor: pointer;">
+          <span><strong>${c.label}</strong></span>
+        </label>
+      `;
+    }).join('');
+  }
+
   function renderSettingsCenterModal(activeTabId = 'tab-general') {
     try {
       if (!state.config) {
@@ -1149,7 +1234,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <button type="button" class="tab-btn ${activeTabId === 'tab-security' ? 'active' : ''}" data-tab="tab-security"><i class="fa-solid fa-user-shield"></i> Sécurité</button>
         <button type="button" class="tab-btn ${activeTabId === 'tab-theme' ? 'active' : ''}" data-tab="tab-theme"><i class="fa-solid fa-palette"></i> Thème</button>
         <button type="button" class="tab-btn ${activeTabId === 'tab-exportimport' ? 'active' : ''}" data-tab="tab-exportimport"><i class="fa-solid fa-file-export"></i> Import / Export</button>
-        <button type="button" class="tab-btn ${activeTabId === 'tab-json' ? 'active' : ''}" data-tab="tab-json"><i class="fa-solid fa-code"></i> Code JSON</button>
       </div>
 
       <div class="settings-tab-panel ${activeTabId === 'tab-general' ? 'active' : ''}" id="tab-general">
@@ -1160,6 +1244,17 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="form-group" style="margin-top: 12px;">
           <label>Sous-Titre</label>
           <input type="text" id="cfg-subtitle" class="form-input" value="${state.config.settings?.subtitle || ''}">
+        </div>
+        <div class="form-group" style="margin-top: 12px;">
+          <label><i class="fa-solid fa-hard-drive" style="color: var(--accent-cyan);"></i> Disques & Volumes à surveiller</label>
+          <div id="disk-selection-list" style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding: 10px; background: rgba(0, 242, 254, 0.03); border: 1px solid rgba(0, 242, 254, 0.15); border-radius: 8px;">
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Cochez tous les disques/volumes que vous voulez afficher sur le tableau de bord :</div>
+            ${renderDiskCheckboxesHtml(state.config)}
+          </div>
+          <div style="margin-top: 8px;">
+            <label style="font-size: 11px; color: var(--text-muted);">Ajouter un chemin personnalisé :</label>
+            <input type="text" id="cfg-custom-disk-input" class="form-input" placeholder="ex: /volume4 ou /mnt/donnees" style="margin-top: 4px;">
+          </div>
         </div>
         <div class="form-group" style="margin-top: 12px;">
           <label>Favicon / Logo URL</label>
@@ -1792,6 +1887,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Read form values
         const title = document.getElementById('cfg-title')?.value.trim();
         const subtitle = document.getElementById('cfg-subtitle')?.value.trim();
+        const checkedPaths = Array.from(document.querySelectorAll('.chk-storage-path:checked')).map(chk => chk.value);
+        const customDiskPath = document.getElementById('cfg-custom-disk-input')?.value.trim();
+        if (customDiskPath && !checkedPaths.includes(customDiskPath)) {
+          checkedPaths.push(customDiskPath);
+        }
         const favicon = document.getElementById('cfg-favicon')?.value.trim();
         const target = document.getElementById('cfg-target')?.value;
         const weatherCity = document.getElementById('cfg-weather-city')?.value.trim();
@@ -1803,6 +1903,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!state.config.settings) state.config.settings = {};
         if (title) state.config.settings.title = title;
         if (subtitle) state.config.settings.subtitle = subtitle;
+        if (checkedPaths.length > 0) {
+          state.config.settings.storagePaths = checkedPaths;
+          state.config.settings.storagePath = checkedPaths[0];
+        }
         if (favicon) state.config.settings.favicon = favicon;
         state.config.settings.openTargetBlank = (target === '_blank');
         if (weatherCity) state.config.settings.weatherCity = weatherCity;
@@ -1817,6 +1921,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await saveConfigToServer();
       renderDashboard();
       fetchWeather();
+      fetchMetrics();
       closeModal();
     }
     else if (state.activeModalMode === 'add-service') {

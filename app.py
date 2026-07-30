@@ -166,19 +166,80 @@ def get_system_metrics():
         # RAM
         memory = psutil.virtual_memory()
         
-        # Disk (Target RAID / Volume)
-        target_storage = os.environ.get('STORAGE_PATH', '/volume3')
-        disk_path = '/'
-        for candidate in [target_storage, '/volume3', '/volume1', os.getcwd(), '/']:
-            if os.path.exists(candidate):
-                disk_path = candidate
-                break
-                
-        try:
-            disk = psutil.disk_usage(disk_path)
-        except Exception:
-            disk = psutil.disk_usage('/')
+        # Disk (Target RAID / Volume(s))
+        config = load_config()
+        settings = config.get('settings', {})
         
+        raw_paths = settings.get('storagePaths')
+        if not raw_paths:
+            single = settings.get('storagePath') or os.environ.get('STORAGE_PATH')
+            raw_paths = [single] if single else []
+            
+        if isinstance(raw_paths, str):
+            raw_paths = [p.strip() for p in raw_paths.split(',') if p.strip()]
+            
+        candidate_defaults = ['/IronWolf', '/volume3/IronWolf', '/volume3', '/volume1', '/volume2', os.getcwd(), '/']
+        
+        target_paths = []
+        for p in raw_paths:
+            if p and p not in target_paths:
+                target_paths.append(p)
+                
+        if not target_paths:
+            for cand in candidate_defaults:
+                if os.path.exists(cand):
+                    target_paths.append(cand)
+                    break
+
+        disks_metrics = []
+        for path in target_paths:
+            if path and os.path.exists(path):
+                try:
+                    disk_usage = psutil.disk_usage(path)
+                    if 'IronWolf' in path:
+                        name = "IronWolf"
+                    elif 'volume3' in path:
+                        name = "Volume 3"
+                    elif 'volume1' in path:
+                        name = "Volume 1"
+                    elif 'volume2' in path:
+                        name = "Volume 2"
+                    elif 'volume4' in path:
+                        name = "Volume 4"
+                    elif path == '/':
+                        name = "Système Docker"
+                    else:
+                        name = os.path.basename(path) or path
+
+                    disks_metrics.append({
+                        'name': name,
+                        'path': path,
+                        'total_gb': round(disk_usage.total / (1024 ** 3), 2),
+                        'used_gb': round(disk_usage.used / (1024 ** 3), 2),
+                        'free_gb': round(disk_usage.free / (1024 ** 3), 2),
+                        'usage_percent': disk_usage.percent
+                    })
+                except Exception:
+                    pass
+
+        if not disks_metrics:
+            try:
+                disk_usage = psutil.disk_usage('/')
+                disks_metrics.append({
+                    'name': 'Système Docker',
+                    'path': '/',
+                    'total_gb': round(disk_usage.total / (1024 ** 3), 2),
+                    'used_gb': round(disk_usage.used / (1024 ** 3), 2),
+                    'free_gb': round(disk_usage.free / (1024 ** 3), 2),
+                    'usage_percent': disk_usage.percent
+                })
+            except Exception:
+                pass
+
+        primary_disk = disks_metrics[0] if disks_metrics else {
+            'name': 'Inaccessible', 'path': '/', 'total_gb': 0, 'used_gb': 0, 'free_gb': 0, 'usage_percent': 0
+        }
+
         # Network IO Speed
         try:
             current_net_io = psutil.net_io_counters()
@@ -213,12 +274,8 @@ def get_system_metrics():
                 'free_gb': round(memory.available / (1024 ** 3), 2),
                 'usage_percent': memory.percent
             },
-            'disk': {
-                'total_gb': round(disk.total / (1024 ** 3), 2),
-                'used_gb': round(disk.used / (1024 ** 3), 2),
-                'free_gb': round(disk.free / (1024 ** 3), 2),
-                'usage_percent': disk.percent
-            },
+            'disk': primary_disk,
+            'disks': disks_metrics,
             'network': {
                 'upload_speed_mbps': round((bytes_sent_per_sec * 8) / 1_000_000, 2),
                 'download_speed_mbps': round((bytes_recv_per_sec * 8) / 1_000_000, 2),
@@ -236,10 +293,67 @@ def get_system_metrics():
             'timestamp': current_time,
             'cpu': {'usage_percent': 0, 'cores': [], 'count': 1},
             'memory': {'total_gb': 0, 'used_gb': 0, 'free_gb': 0, 'usage_percent': 0},
-            'disk': {'total_gb': 0, 'used_gb': 0, 'free_gb': 0, 'usage_percent': 0},
+            'disk': {'total_gb': 0, 'used_gb': 0, 'free_gb': 0, 'usage_percent': 0, 'path': '/'},
+            'disks': [{'name': 'Système', 'path': '/', 'total_gb': 0, 'used_gb': 0, 'free_gb': 0, 'usage_percent': 0}],
             'network': {'upload_speed_mbps': 0, 'download_speed_mbps': 0, 'sent_mbytes': 0, 'recv_mbytes': 0},
             'uptime': {'seconds': 0, 'formatted': '0d 0h 0m'}
         })
+
+@app.route('/api/disks', methods=['GET'])
+@check_auth
+def get_available_disks():
+    config = load_config()
+    settings = config.get('settings', {})
+    raw_paths = settings.get('storagePaths')
+    if not raw_paths:
+        single = settings.get('storagePath') or os.environ.get('STORAGE_PATH')
+        raw_paths = [single] if single else ['/IronWolf']
+    elif isinstance(raw_paths, str):
+        raw_paths = [p.strip() for p in raw_paths.split(',') if p.strip()]
+        
+    known_candidates = [
+        ('/IronWolf', 'Volume IronWolf monté (/IronWolf)'),
+        ('/', 'Partition Système Docker (/)')
+    ]
+    
+    disks = []
+    seen = set()
+    
+    for p in raw_paths:
+        if p and p not in [c[0] for c in known_candidates]:
+            known_candidates.insert(0, (p, f'Personnalisé ({p})'))
+            
+    for path, label in known_candidates:
+        if path in seen:
+            continue
+        seen.add(path)
+        exists = os.path.exists(path)
+        total_gb = 0
+        free_gb = 0
+        usage_percent = 0
+        if exists:
+            try:
+                du = psutil.disk_usage(path)
+                total_gb = round(du.total / (1024 ** 3), 1)
+                free_gb = round(du.free / (1024 ** 3), 1)
+                usage_percent = du.percent
+            except Exception:
+                pass
+        disks.append({
+            'path': path,
+            'label': label,
+            'exists': exists,
+            'total_gb': total_gb,
+            'free_gb': free_gb,
+            'usage_percent': usage_percent,
+            'selected': (path in raw_paths)
+        })
+        
+    return jsonify({
+        'success': True,
+        'selected_paths': raw_paths,
+        'disks': disks
+    })
 
 @app.route('/api/ping', methods=['POST'])
 @check_auth
@@ -508,9 +622,24 @@ def container_action(container_id):
         pass
 
     # Execute Docker action in background thread to avoid Reverse Proxy 502 HTTP timeouts
-    threading.Thread(target=_exec_docker_post_action_thread, args=(container_id, action), daemon=True).start()
+    if action in ('restart', 'stop', 'kill') and ('dashmax' in container_id or container_id in ('dashmax', 'd9e7ff6bbfe0')):
+        def _self_restart():
+            time.sleep(0.5)
+            os._exit(0)
+        threading.Thread(target=_self_restart, daemon=True).start()
+    else:
+        threading.Thread(target=_exec_docker_post_action_thread, args=(container_id, action), daemon=True).start()
 
     return jsonify({'success': True, 'message': f"Ordre de {action} envoyé au conteneur."})
+
+@app.route('/api/restart-server', methods=['POST'])
+@check_auth
+def restart_server():
+    def _self_restart():
+        time.sleep(0.5)
+        os._exit(0)
+    threading.Thread(target=_self_restart, daemon=True).start()
+    return jsonify({'success': True, 'message': 'Redémarrage du serveur en cours...'})
 
 def docker_get_logs(container_id, tail=300):
     conn, source = get_docker_connection()
@@ -563,6 +692,6 @@ if __name__ == '__main__':
     # Initial measurement for cpu_percent baseline
     psutil.cpu_percent(interval=None)
     port = int(os.environ.get('PORT', 3550))
-    debug_mode = os.environ.get('FLASK_DEBUG', '0') == '1'
+    debug_mode = True
     print(f"🚀 Starting DashMax Server on port {port} (Debug: {debug_mode})...")
-    app.run(host='0.0.0.0', port=port, debug=debug_mode)
+    app.run(host='0.0.0.0', port=port, debug=True, use_reloader=True)

@@ -10,6 +10,8 @@ services:
       - ./config.json:/app/config.json
       - ./static:/app/static
       - ./app.py:/app/app.py
+      - /volume3/IronWolf:/IronWolf:ro
     environment:
       - PORT=3550
-      - FLASK_DEBUG=0
+      - FLASK_DEBUG=1
+      - STORAGE_PATH=/IronWolf
